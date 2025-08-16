@@ -1,6 +1,6 @@
 name: swiper_csc_picker
 description: "A Flutter package to display and search countries, states, and cities in Arabic, English, or the native language worldwide."
-version: 0.0.7
+version: 0.0.8
 homepage: https://github.com/vgarfi/swiper_csc_picker.git
 
 environment:
