@@ -1,10 +1,9 @@
 library csc_picker_plus;
 
-import 'dart:developer';
-
-import 'package:flutter/services.dart' show rootBundle;
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
 import 'dropdown_with_search.dart';
 import 'model/select_status_model.dart';
@@ -554,19 +553,29 @@ extension _PublicTranslator on String {
 }
 
 class CSCPickerPlus extends StatefulWidget {
-  /// CSC Picker Constructor
   const CSCPickerPlus({
     super.key,
     this.onCountryChanged,
     this.onStateChanged,
     this.onCityChanged,
     this.selectedItemStyle,
-    this.dropdownHeadingStyle,
-    this.dropdownItemStyle,
+    this.titleStyle,
+    this.itemStyle,
+    this.hintStyle,
     this.dropdownDecoration,
     this.disabledDropdownDecoration,
+    this.borderRadius = 30.0,
     this.searchBarRadius,
     this.dropdownDialogRadius,
+    this.backgroundColor,
+    this.disabledBackgroundColor,
+    this.borderColor,
+    this.disabledBorderColor,
+    this.iconColor,
+    this.dialogBackgroundColor,
+    this.elevation,
+    this.padding,
+    this.dropdownIcon,
     this.flagState = CountryFlag.ENABLE,
     this.layout = Layout.horizontal,
     this.countryStateLanguage = CountryStateLanguage.englishOrNative,
@@ -597,29 +606,43 @@ class CSCPickerPlus extends StatefulWidget {
 
   final CountryStateLanguage countryStateLanguage;
   final CityLanguage cityLanguage;
-
   final bool disableCountry;
 
-  ///Parameters to change style of CSC Picker
-  final TextStyle? selectedItemStyle, dropdownHeadingStyle, dropdownItemStyle;
-  final BoxDecoration? dropdownDecoration, disabledDropdownDecoration;
-  final bool showStates, showCities;
-  final CountryFlag flagState;
-  final Layout layout;
+  // Style parameters
+  final TextStyle? selectedItemStyle;
+  final TextStyle? titleStyle;
+  final TextStyle? itemStyle;
+  final TextStyle? hintStyle;
+  final BoxDecoration? dropdownDecoration;
+  final BoxDecoration? disabledDropdownDecoration;
+  final EdgeInsets? padding;
+  final double borderRadius;
   final double? searchBarRadius;
   final double? dropdownDialogRadius;
+  final Color? backgroundColor;
+  final Color? disabledBackgroundColor;
+  final Color? borderColor;
+  final Color? disabledBorderColor;
+  final Color? iconColor;
+  final Color? dialogBackgroundColor;
+  final double? elevation;
+  final IconData? dropdownIcon;
 
+  // Configuration parameters
+  final bool showStates;
+  final bool showCities;
+  final CountryFlag flagState;
+  final Layout layout;
   final CscCountry? defaultCountry;
+  final List<CscCountry>? countryFilter;
 
+  // Placeholder texts
   final String countrySearchPlaceholder;
   final String stateSearchPlaceholder;
   final String citySearchPlaceholder;
-
   final String countryDropdownLabel;
   final String stateDropdownLabel;
   final String cityDropdownLabel;
-
-  final List<CscCountry>? countryFilter;
 
   @override
   CSCPickerPlusState createState() => CSCPickerPlusState();
@@ -668,16 +691,13 @@ class CSCPickerPlusState extends State<CSCPickerPlus> {
 
   void _setDefaultCountry() {
     if (widget.defaultCountry != null) {
-      log(_countryModels[Countries[widget.defaultCountry]!]?.name ?? '');
-      _onSelectedCountry(
-          _countryModels[Countries[widget.defaultCountry]!]!.name!);
+      _onSelectedCountry(_countryModels[Countries[widget.defaultCountry]!]!.name!);
     }
   }
 
   ///Read JSON country data from assets
   Future<dynamic> getResponse() async {
-    var res = await rootBundle
-        .loadString('packages/csc_picker_plus/lib/assets/countries.json');
+    var res = await rootBundle.loadString('packages/csc_picker_plus/lib/assets/countries.json');
     return jsonDecode(res);
   }
 
@@ -714,16 +734,12 @@ class CSCPickerPlusState extends State<CSCPickerPlus> {
 
     // change the selectedCountry to corresponding name in the specified language
     if (model.name == _selectedCountry || model.nameAr == _selectedCountry) {
-      _selectedCountry =
-          widget.countryStateLanguage == CountryStateLanguage.arabic
-              ? model.nameAr
-              : model.name;
+      _selectedCountry = widget.countryStateLanguage == CountryStateLanguage.arabic ? model.nameAr : model.name;
     }
 
     if (!mounted) return;
     setState(() {
-      if (widget.flagState == CountryFlag.ENABLE ||
-          widget.flagState == CountryFlag.SHOW_IN_DROP_DOWN_ONLY) {
+      if (widget.flagState == CountryFlag.ENABLE || widget.flagState == CountryFlag.SHOW_IN_DROP_DOWN_ONLY) {
         if (widget.countryStateLanguage == CountryStateLanguage.arabic) {
           model.nameAr = "${model.emoji!}    ${model.nameAr!}";
         } else {
@@ -737,8 +753,7 @@ class CSCPickerPlusState extends State<CSCPickerPlus> {
   Future<List<Country>> getSelectedCountryData() async {
     // log(_selectedCountry ?? 'No Selected Country');
     var response = await getResponse();
-    var country = widget.flagState == CountryFlag.ENABLE ||
-            widget.flagState == CountryFlag.SHOW_IN_DROP_DOWN_ONLY
+    var country = widget.flagState == CountryFlag.ENABLE || widget.flagState == CountryFlag.SHOW_IN_DROP_DOWN_ONLY
         ? response
             .map((map) => Country.fromJson(map))
             .where((country) =>
@@ -747,9 +762,7 @@ class CSCPickerPlusState extends State<CSCPickerPlus> {
             .toList()
         : response
             .map((map) => Country.fromJson(map))
-            .where((country) =>
-                country.name == _selectedCountry ||
-                country.nameAr == _selectedCountry)
+            .where((country) => country.name == _selectedCountry || country.nameAr == _selectedCountry)
             .toList();
 
     return country.cast<Country>();
@@ -786,10 +799,7 @@ class CSCPickerPlusState extends State<CSCPickerPlus> {
 
     for (var selectedState in selectedStates) {
       var state = selectedState?.where((item) {
-        var stateName =
-            widget.countryStateLanguage == CountryStateLanguage.englishOrNative
-                ? item.name
-                : item.nameAr;
+        var stateName = widget.countryStateLanguage == CountryStateLanguage.englishOrNative ? item.name : item.nameAr;
         return stateName == _selectedState;
       });
       // log('States Names: ${state?.first.toJson()}');
@@ -817,7 +827,7 @@ class CSCPickerPlusState extends State<CSCPickerPlus> {
         try {
           widget.onCountryChanged?.call(value.substring(6).trim());
         } catch (e) {
-          log('Error: $e');
+          // Handle error silently or use debugPrint if needed
         }
       } else {
         widget.onCountryChanged?.call(value);
@@ -826,10 +836,8 @@ class CSCPickerPlusState extends State<CSCPickerPlus> {
       if (value != _selectedCountry) {
         _statesModels.clear();
         _cities.clear();
-        _selectedState =
-            widget.stateDropdownLabel.tr(widget.countryStateLanguage);
-        _selectedCity =
-            widget.cityDropdownLabel.tr(widget.countryStateLanguage);
+        _selectedState = widget.stateDropdownLabel.tr(widget.countryStateLanguage);
+        _selectedCity = widget.cityDropdownLabel.tr(widget.countryStateLanguage);
         if (widget.showStates) widget.onStateChanged?.call(null);
         if (widget.showCities) widget.onCityChanged?.call(null);
         _selectedCountry = value;
@@ -848,8 +856,7 @@ class CSCPickerPlusState extends State<CSCPickerPlus> {
       //code added in if condition
       if (value != _selectedState) {
         _cities.clear();
-        _selectedCity =
-            widget.cityDropdownLabel.tr(widget.countryStateLanguage);
+        _selectedCity = widget.cityDropdownLabel.tr(widget.countryStateLanguage);
         if (widget.showCities) widget.onCityChanged?.call(null);
         _selectedState = value;
         if (widget.showCities) getCities();
@@ -879,16 +886,10 @@ class CSCPickerPlusState extends State<CSCPickerPlus> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   countryDropdown(),
-                  widget.showStates
-                      ? const SizedBox(height: 10.0)
-                      : Container(),
+                  widget.showStates ? const SizedBox(height: 10.0) : Container(),
                   widget.showStates ? stateDropdown() : Container(),
-                  widget.showStates && widget.showCities
-                      ? const SizedBox(height: 10.0)
-                      : Container(),
-                  widget.showStates && widget.showCities
-                      ? cityDropdown()
-                      : Container()
+                  widget.showStates && widget.showCities ? const SizedBox(height: 10.0) : Container(),
+                  widget.showStates && widget.showCities ? cityDropdown() : Container()
                 ],
               )
             : Column(
@@ -897,20 +898,14 @@ class CSCPickerPlusState extends State<CSCPickerPlus> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: <Widget>[
                       Expanded(child: countryDropdown()),
-                      widget.showStates
-                          ? const SizedBox(width: 10.0)
-                          : Container(),
-                      widget.showStates
-                          ? Expanded(child: stateDropdown())
-                          : Container(),
+                      widget.showStates ? const SizedBox(width: 10.0) : Container(),
+                      widget.showStates ? Expanded(child: stateDropdown()) : Container(),
                     ],
                   ),
                   const SizedBox(
                     height: 10.0,
                   ),
-                  widget.showStates && widget.showCities
-                      ? cityDropdown()
-                      : Container()
+                  widget.showStates && widget.showCities ? cityDropdown() : Container()
                 ],
               ),
       ],
@@ -921,27 +916,31 @@ class CSCPickerPlusState extends State<CSCPickerPlus> {
   Widget countryDropdown() {
     return DropdownWithSearch(
       title: widget.countryDropdownLabel.tr(widget.countryStateLanguage),
-      placeHolder:
-          widget.countrySearchPlaceholder.tr(widget.countryStateLanguage),
+      placeHolder: widget.countrySearchPlaceholder.tr(widget.countryStateLanguage),
+      label: widget.countrySearchPlaceholder.tr(widget.countryStateLanguage),
       selectedItemStyle: widget.selectedItemStyle,
-      dropdownHeadingStyle: widget.dropdownHeadingStyle,
-      itemStyle: widget.dropdownItemStyle,
+      titleStyle: widget.titleStyle,
+      itemStyle: widget.itemStyle,
+      hintStyle: widget.hintStyle,
       decoration: widget.dropdownDecoration,
       disabledDecoration: widget.disabledDropdownDecoration,
-      disabled: _countryModels.isEmpty || widget.disableCountry ? true : false,
+      padding: widget.padding,
+      borderRadius: widget.borderRadius,
       dialogRadius: widget.dropdownDialogRadius,
       searchBarRadius: widget.searchBarRadius,
-      label: widget.countrySearchPlaceholder.tr(widget.countryStateLanguage),
-      items: _countryModels.map((dropDownStringItem) {
-        return dropDownStringItem;
-      }).toList(),
+      backgroundColor: widget.backgroundColor,
+      disabledBackgroundColor: widget.disabledBackgroundColor,
+      borderColor: widget.borderColor,
+      disabledBorderColor: widget.disabledBorderColor,
+      iconColor: widget.iconColor,
+      dialogBackgroundColor: widget.dialogBackgroundColor,
+      elevation: widget.elevation,
+      dropdownIcon: widget.dropdownIcon,
+      disabled: _countryModels.isEmpty || widget.disableCountry,
+      items: _countryModels,
       isArabic: widget.countryStateLanguage == CountryStateLanguage.arabic,
-      selected: _selectedCountry ??
-          widget.countryDropdownLabel.tr(widget.countryStateLanguage),
-      //selected: _selectedCountry != null ? _selectedCountry : "Country",
-      //onChanged: (value) => _onSelectedCountry(value),
+      selected: _selectedCountry ?? widget.countryDropdownLabel.tr(widget.countryStateLanguage),
       onChanged: (value) {
-        log("countryChanged $value $_selectedCountry");
         if (value != null) {
           _onSelectedCountry(value);
         }
@@ -953,28 +952,36 @@ class CSCPickerPlusState extends State<CSCPickerPlus> {
   Widget stateDropdown() {
     return DropdownWithSearch(
       title: widget.stateDropdownLabel.tr(widget.countryStateLanguage),
-      placeHolder:
-          widget.stateSearchPlaceholder.tr(widget.countryStateLanguage),
-      disabled: _statesModels.isEmpty ? true : false,
-      items: _statesModels.map((dropDownStringItem) {
-        return dropDownStringItem;
-      }).toList(),
-      isArabic: widget.countryStateLanguage == CountryStateLanguage.arabic,
+      placeHolder: widget.stateSearchPlaceholder.tr(widget.countryStateLanguage),
+      label: widget.stateSearchPlaceholder.tr(widget.countryStateLanguage),
       selectedItemStyle: widget.selectedItemStyle,
-      dropdownHeadingStyle: widget.dropdownHeadingStyle,
-      itemStyle: widget.dropdownItemStyle,
+      titleStyle: widget.titleStyle,
+      itemStyle: widget.itemStyle,
+      hintStyle: widget.hintStyle,
       decoration: widget.dropdownDecoration,
+      disabledDecoration: widget.disabledDropdownDecoration,
+      padding: widget.padding,
+      borderRadius: widget.borderRadius,
       dialogRadius: widget.dropdownDialogRadius,
       searchBarRadius: widget.searchBarRadius,
-      disabledDecoration: widget.disabledDropdownDecoration,
+      backgroundColor: widget.backgroundColor,
+      disabledBackgroundColor: widget.disabledBackgroundColor,
+      borderColor: widget.borderColor,
+      disabledBorderColor: widget.disabledBorderColor,
+      iconColor: widget.iconColor,
+      dialogBackgroundColor: widget.dialogBackgroundColor,
+      elevation: widget.elevation,
+      dropdownIcon: widget.dropdownIcon,
+      disabled: _statesModels.isEmpty,
+      items: _statesModels,
+      isArabic: widget.countryStateLanguage == CountryStateLanguage.arabic,
       selected: _selectedState,
-      label: widget.stateSearchPlaceholder.tr(widget.countryStateLanguage),
-      //onChanged: (value) => _onSelectedState(value),
       onChanged: (value) {
-        //print("stateChanged $value $_selectedState");
-        value != null
-            ? _onSelectedState(value)
-            : _onSelectedState(_selectedState);
+        if (value != null) {
+          _onSelectedState(value);
+        } else {
+          _onSelectedState(_selectedState);
+        }
       },
     );
   }
@@ -984,23 +991,34 @@ class CSCPickerPlusState extends State<CSCPickerPlus> {
     return DropdownWithSearch(
       title: widget.cityDropdownLabel.tr(widget.countryStateLanguage),
       placeHolder: widget.citySearchPlaceholder.tr(widget.countryStateLanguage),
-      disabled: _cities.isEmpty ? true : false,
-      items: _cities.map((String? dropDownStringItem) {
-        return dropDownStringItem;
-      }).toList(),
+      label: widget.citySearchPlaceholder.tr(widget.countryStateLanguage),
       selectedItemStyle: widget.selectedItemStyle,
-      dropdownHeadingStyle: widget.dropdownHeadingStyle,
-      itemStyle: widget.dropdownItemStyle,
+      titleStyle: widget.titleStyle,
+      itemStyle: widget.itemStyle,
+      hintStyle: widget.hintStyle,
       decoration: widget.dropdownDecoration,
+      disabledDecoration: widget.disabledDropdownDecoration,
+      padding: widget.padding,
+      borderRadius: widget.borderRadius,
       dialogRadius: widget.dropdownDialogRadius,
       searchBarRadius: widget.searchBarRadius,
-      disabledDecoration: widget.disabledDropdownDecoration,
+      backgroundColor: widget.backgroundColor,
+      disabledBackgroundColor: widget.disabledBackgroundColor,
+      borderColor: widget.borderColor,
+      disabledBorderColor: widget.disabledBorderColor,
+      iconColor: widget.iconColor,
+      dialogBackgroundColor: widget.dialogBackgroundColor,
+      elevation: widget.elevation,
+      dropdownIcon: widget.dropdownIcon,
+      disabled: _cities.isEmpty,
+      items: _cities,
       selected: _selectedCity,
-      label: widget.citySearchPlaceholder.tr(widget.countryStateLanguage),
-      //onChanged: (value) => _onSelectedCity(value),
       onChanged: (value) {
-        //print("cityChanged $value $_selectedCity");
-        value != null ? _onSelectedCity(value) : _onSelectedCity(_selectedCity);
+        if (value != null) {
+          _onSelectedCity(value);
+        } else {
+          _onSelectedCity(_selectedCity);
+        }
       },
     );
   }

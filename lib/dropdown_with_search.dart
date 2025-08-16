@@ -1,24 +1,36 @@
-import 'dart:developer';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class DropdownWithSearch<T> extends StatelessWidget {
   final String title;
   final String placeHolder;
   final T selected;
   final List items;
-  final EdgeInsets? selectedItemPadding;
-  final TextStyle? selectedItemStyle;
-  final TextStyle? dropdownHeadingStyle;
-  final TextStyle? itemStyle;
-  final BoxDecoration? decoration, disabledDecoration;
-  final double? searchBarRadius;
-  final double? dialogRadius;
-  final bool disabled;
-  final String label;
-  final bool? isArabic;
-
   final Function onChanged;
+  final String label;
+
+  // Styling parameters
+  final TextStyle? selectedItemStyle;
+  final TextStyle? titleStyle;
+  final TextStyle? itemStyle;
+  final TextStyle? hintStyle;
+  final BoxDecoration? decoration;
+  final BoxDecoration? disabledDecoration;
+  final EdgeInsets? padding;
+  final double borderRadius;
+  final double? dialogRadius;
+  final double? searchBarRadius;
+  final Color? backgroundColor;
+  final Color? disabledBackgroundColor;
+  final Color? borderColor;
+  final Color? disabledBorderColor;
+  final Color? iconColor;
+  final Color? dialogBackgroundColor;
+  final double? elevation;
+  final bool disabled;
+  final bool? isArabic;
+  final IconData? dropdownIcon;
 
   const DropdownWithSearch({
     super.key,
@@ -27,70 +39,105 @@ class DropdownWithSearch<T> extends StatelessWidget {
     required this.items,
     required this.selected,
     required this.onChanged,
-    this.selectedItemPadding,
+    required this.label,
     this.selectedItemStyle,
-    this.dropdownHeadingStyle,
+    this.titleStyle,
     this.itemStyle,
+    this.hintStyle,
     this.decoration,
     this.disabledDecoration,
-    this.searchBarRadius,
+    this.padding,
+    this.borderRadius = 30.0,
     this.dialogRadius,
-    required this.label,
+    this.searchBarRadius,
+    this.backgroundColor,
+    this.disabledBackgroundColor,
+    this.borderColor,
+    this.disabledBorderColor,
+    this.iconColor,
+    this.dialogBackgroundColor,
+    this.elevation,
     this.disabled = false,
     this.isArabic,
+    this.dropdownIcon,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectivePadding = padding ??
+        EdgeInsets.symmetric(
+          horizontal: kIsWeb ? 30 : 22,
+          vertical: kIsWeb ? 22 : 16,
+        );
+
+    final effectiveBackgroundColor = backgroundColor ?? Colors.white;
+    final effectiveDisabledBackgroundColor = disabledBackgroundColor ?? Colors.grey.shade300;
+    final effectiveBorderColor = borderColor ?? Colors.grey.shade600;
+    final effectiveDisabledBorderColor = disabledBorderColor ?? Colors.grey.shade300;
+    final effectiveIconColor = iconColor ?? Colors.grey.shade600;
+
     return AbsorbPointer(
       absorbing: disabled,
       child: GestureDetector(
-        onTap: () {
-          showDialog(
-              context: context,
-              builder: (context) => SearchDialog(
-                  placeHolder: placeHolder,
-                  title: title,
-                  searchInputRadius: searchBarRadius,
-                  dialogRadius: dialogRadius,
-                  titleStyle: dropdownHeadingStyle,
-                  itemStyle: itemStyle,
-                  displayArabic: isArabic,
-                  items: items)).then((value) {
-            onChanged(value);
-            /* if(value!=null)
-                    {
-                      onChanged(value);
-                      _lastSelected = value;
-                    }
-                    else {
-                      print("Value NULL $value $_lastSelected");
-                      onChanged(_lastSelected);
-                    }*/
-          });
-        },
+        onTap: disabled
+            ? null
+            : () {
+                showDialog(
+                  context: context,
+                  builder: (context) => SearchDialog(
+                    placeHolder: placeHolder,
+                    title: title,
+                    items: items,
+                    titleStyle: titleStyle,
+                    itemStyle: itemStyle,
+                    hintStyle: hintStyle,
+                    searchInputRadius: searchBarRadius ?? borderRadius,
+                    dialogRadius: dialogRadius ?? 20.0,
+                    displayArabic: isArabic,
+                    backgroundColor: dialogBackgroundColor ?? Colors.white,
+                    elevation: elevation ?? 15.0,
+                  ),
+                ).then((value) {
+                  if (value != null) {
+                    onChanged(value);
+                  }
+                });
+              },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: effectivePadding,
           decoration: !disabled
               ? decoration ??
                   BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(5)),
-                      color: Colors.white,
-                      border: Border.all(color: Colors.grey.shade300, width: 1))
+                    borderRadius: BorderRadius.circular(borderRadius),
+                    color: effectiveBackgroundColor,
+                    border: Border.all(color: effectiveBorderColor, width: 1),
+                  )
               : disabledDecoration ??
                   BoxDecoration(
-                      borderRadius: const BorderRadius.all(Radius.circular(5)),
-                      color: Colors.grey.shade300,
-                      border:
-                          Border.all(color: Colors.grey.shade300, width: 1)),
+                    borderRadius: BorderRadius.circular(borderRadius),
+                    color: effectiveDisabledBackgroundColor,
+                    border: Border.all(color: effectiveDisabledBorderColor, width: 1),
+                  ),
           child: Row(
             children: [
               Expanded(
-                  child: Text(selected.toString(),
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          selectedItemStyle ?? const TextStyle(fontSize: 14))),
-              const Icon(Icons.keyboard_arrow_down_rounded)
+                child: Text(
+                  selected.toString(),
+                  overflow: TextOverflow.ellipsis,
+                  style: selectedItemStyle ??
+                      GoogleFonts.poppins(
+                        textStyle: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                          color: disabled ? Colors.grey.shade500 : Colors.black,
+                        ),
+                      ),
+                ),
+              ),
+              Icon(
+                dropdownIcon ?? Icons.keyboard_arrow_down_rounded,
+                color: disabled ? Colors.grey.shade400 : effectiveIconColor,
+              ),
             ],
           ),
         ),
@@ -105,10 +152,12 @@ class SearchDialog extends StatefulWidget {
   final List items;
   final TextStyle? titleStyle;
   final TextStyle? itemStyle;
-  final double? searchInputRadius;
+  final TextStyle? hintStyle;
+  final double searchInputRadius;
+  final double dialogRadius;
   final bool? displayArabic;
-
-  final double? dialogRadius;
+  final Color backgroundColor;
+  final double elevation;
 
   const SearchDialog({
     super.key,
@@ -116,261 +165,237 @@ class SearchDialog extends StatefulWidget {
     required this.placeHolder,
     required this.items,
     this.titleStyle,
-    this.searchInputRadius,
-    this.dialogRadius,
     this.itemStyle,
+    this.hintStyle,
+    this.searchInputRadius = 30.0,
+    this.dialogRadius = 20.0,
     this.displayArabic,
+    this.backgroundColor = Colors.white,
+    this.elevation = 15.0,
   });
 
   @override
-  _SearchDialogState createState() => _SearchDialogState();
+  State<SearchDialog> createState() => _SearchDialogState();
 }
 
-class _SearchDialogState<T> extends State<SearchDialog> {
-  TextEditingController textController = TextEditingController();
-  late List filteredList;
+class _SearchDialogState extends State<SearchDialog> {
+  final TextEditingController _textController = TextEditingController();
+  late List _filteredList;
 
   @override
   void initState() {
-    log(widget.items.runtimeType.toString());
-    if (widget.items is List<String?>) {
-      filteredList = widget.items;
-      textController.addListener(() {
-        setState(() {
-          if (textController.text.isEmpty) {
-            filteredList = widget.items;
-          } else {
-            filteredList = widget.items
-                .where((element) => element
-                    .toString()
-                    .toLowerCase()
-                    .contains(textController.text.toLowerCase()))
-                .toList();
-          }
-        });
-      });
-    } else {
-      filteredList = widget.items
-          .map((e) => widget.displayArabic == true ? e.nameAr : e.name)
-          .toList();
-      textController.addListener(() {
-        setState(() {
-          if (textController.text.isEmpty) {
-            filteredList = widget.items
-                .map((e) => widget.displayArabic == true ? e.nameAr : e.name)
-                .toList();
-          } else {
-            filteredList = widget.items
-                .where((element) {
-                  return element.name
-                          .toString()
-                          .toLowerCase()
-                          .contains(textController.text.toLowerCase()) ||
-                      element.nameAr
-                          .toString()
-                          .toLowerCase()
-                          .contains(textController.text.toLowerCase());
-                })
-                .map((e) => widget.displayArabic == true ? e.nameAr : e.name)
-                .toList();
-          }
-        });
-      });
-    }
     super.initState();
+    _initializeFilteredList();
+    _textController.addListener(_filterItems);
+  }
+
+  void _initializeFilteredList() {
+    if (widget.items is List<String?>) {
+      _filteredList = List.from(widget.items);
+    } else {
+      _filteredList = widget.items.map((e) => widget.displayArabic == true ? e.nameAr : e.name).toList();
+    }
+  }
+
+  void _filterItems() {
+    setState(() {
+      if (_textController.text.isEmpty) {
+        _initializeFilteredList();
+      } else {
+        final searchText = _textController.text.toLowerCase();
+        if (widget.items is List<String?>) {
+          _filteredList =
+              widget.items.where((element) => element.toString().toLowerCase().contains(searchText)).toList();
+        } else {
+          _filteredList = widget.items
+              .where((element) {
+                return element.name.toString().toLowerCase().contains(searchText) ||
+                    element.nameAr.toString().toLowerCase().contains(searchText);
+              })
+              .map((e) => widget.displayArabic == true ? e.nameAr : e.name)
+              .toList();
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
-    textController.dispose();
+    _textController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return CustomDialog(
+    return Dialog(
       shape: RoundedRectangleBorder(
-          borderRadius: widget.dialogRadius != null
-              ? BorderRadius.circular(widget.dialogRadius!)
-              : BorderRadius.circular(14)),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12.0),
+        borderRadius: BorderRadius.circular(widget.dialogRadius),
+      ),
+      elevation: widget.elevation,
+      backgroundColor: widget.backgroundColor,
+      child: Container(
+        constraints: const BoxConstraints(
+          minWidth: 280.0,
+          minHeight: 280.0,
+          maxHeight: 500.0,
+          maxWidth: 400.0,
+        ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    widget.title,
-                    style: widget.titleStyle ??
-                        const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                ),
-                IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () {
-                      FocusScope.of(context).unfocus();
-                      Navigator.pop(context);
-                    })
-                /*Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                    onPressed: () {
-                      FocusScope.of(context).unfocus();
-                      Navigator.pop(context);
-                    },
-                    child: Text(
-                      'Close',
-                      style: widget.titleStyle != null
-                          ? widget.titleStyle
-                          : TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                    )),
-              )*/
-              ],
-            ),
-            const SizedBox(height: 5),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              child: TextField(
-                autofocus: true,
-                decoration: InputDecoration(
-                  isDense: true,
-                  prefixIcon: const Icon(Icons.search),
-                  hintText: widget.placeHolder,
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(
-                        widget.searchInputRadius != null
-                            ? Radius.circular(widget.searchInputRadius!)
-                            : const Radius.circular(5)),
-                    borderSide: const BorderSide(
-                      color: Colors.black26,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(
-                        widget.searchInputRadius != null
-                            ? Radius.circular(widget.searchInputRadius!)
-                            : const Radius.circular(5)),
-                    borderSide: const BorderSide(color: Colors.black12),
-                  ),
-                ),
-                style: widget.itemStyle ?? const TextStyle(fontSize: 14),
-                controller: textController,
-              ),
-            ),
-            const SizedBox(height: 5),
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.all(widget.dialogRadius != null
-                    ? Radius.circular(widget.dialogRadius!)
-                    : const Radius.circular(5)),
-                //borderRadius: widget.dialogRadius!=null?BorderRadius.circular(widget.dropDownRadius!):BorderRadius.circular(14),
-                child: ListView.builder(
-                    itemCount: filteredList.length,
-                    itemBuilder: (context, index) {
-                      return InkWell(
-                          onTap: () {
-                            FocusScope.of(context).unfocus();
-                            Navigator.pop(context, filteredList[index]);
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 10, horizontal: 18),
-                            child: Text(
-                              filteredList[index].toString(),
-                              style: widget.itemStyle ??
-                                  const TextStyle(fontSize: 14),
-                            ),
-                          ));
-                    }),
-              ),
-            ),
+            _buildHeader(),
+            _buildSearchField(),
+            const SizedBox(height: 16),
+            _buildItemsList(),
           ],
         ),
       ),
     );
   }
-}
 
-class CustomDialog extends StatelessWidget {
-  /// Creates a dialog.
-  ///
-  /// Typically used in conjunction with [showDialog].
-  const CustomDialog({
-    super.key,
-    this.child,
-    this.insetAnimationDuration = const Duration(milliseconds: 100),
-    this.insetAnimationCurve = Curves.decelerate,
-    this.shape,
-    this.constraints = const BoxConstraints(
-        minWidth: 280.0, minHeight: 280.0, maxHeight: 400.0, maxWidth: 400.0),
-  });
-
-  /// The widget below this widget in the tree.
-  ///
-  /// {@macro flutter.widgets.child}
-  final Widget? child;
-
-  /// The duration of the animation to show when the system keyboard intrudes
-  /// into the space that the dialog is placed in.
-  ///
-  /// Defaults to 100 milliseconds.
-  final Duration insetAnimationDuration;
-
-  /// The curve to use for the animation shown when the system keyboard intrudes
-  /// into the space that the dialog is placed in.
-  ///
-  /// Defaults to [Curves.fastOutSlowIn].
-  final Curve insetAnimationCurve;
-
-  /// {@template flutter.material.dialog.shape}
-  /// The shape of this dialog's border.
-  ///
-  /// Defines the dialog's [Material.shape].
-  ///
-  /// The default shape is a [RoundedRectangleBorder] with a radius of 2.0.
-  /// {@endtemplate}
-  final ShapeBorder? shape;
-  final BoxConstraints constraints;
-
-  Color _getColor(BuildContext context) {
-    return Theme.of(context).dialogBackgroundColor;
-  }
-
-  static const RoundedRectangleBorder _defaultDialogShape =
-      RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(4.0)));
-
-  @override
-  Widget build(BuildContext context) {
-    final DialogThemeData dialogTheme = DialogTheme.of(context);
-    return AnimatedPadding(
-      padding: MediaQuery.of(context).viewInsets +
-          const EdgeInsets.symmetric(horizontal: 22.0, vertical: 24.0),
-      duration: insetAnimationDuration,
-      curve: insetAnimationCurve,
-      child: MediaQuery.removeViewInsets(
-        removeLeft: true,
-        removeTop: true,
-        removeRight: true,
-        removeBottom: true,
-        context: context,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: constraints,
-            child: Material(
-              elevation: 15.0,
-              color: _getColor(context),
-              type: MaterialType.card,
-              shape: shape ?? dialogTheme.shape ?? _defaultDialogShape,
-              child: child,
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 24, 16, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              widget.title,
+              style: widget.titleStyle ??
+                  GoogleFonts.poppins(
+                    textStyle: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
             ),
           ),
+          IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => Navigator.of(context).pop(),
+            color: Colors.grey.shade600,
+            iconSize: 24,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchField() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      child: TextField(
+        controller: _textController,
+        autofocus: true,
+        decoration: InputDecoration(
+          hintText: widget.placeHolder,
+          hintStyle: widget.hintStyle ??
+              GoogleFonts.poppins(
+                textStyle: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.grey.shade500,
+                ),
+              ),
+          prefixIcon: Icon(
+            Icons.search,
+            color: Colors.grey.shade600,
+          ),
+          filled: true,
+          fillColor: Colors.grey.shade50,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(widget.searchInputRadius),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(widget.searchInputRadius),
+            borderSide: BorderSide(color: Colors.grey.shade300),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(widget.searchInputRadius),
+            borderSide: const BorderSide(color: Colors.blue, width: 2),
+          ),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: kIsWeb ? 20 : 16,
+            vertical: kIsWeb ? 18 : 14,
+          ),
         ),
+        style: GoogleFonts.poppins(
+          textStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w400,
+            color: Colors.black87,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItemsList() {
+    return Expanded(
+      child: _filteredList.isEmpty
+          ? _buildEmptyState()
+          : ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              itemCount: _filteredList.length,
+              separatorBuilder: (context, index) => const Divider(
+                height: 1,
+                color: Colors.grey,
+                indent: 16,
+                endIndent: 16,
+              ),
+              itemBuilder: (context, index) {
+                return InkWell(
+                  onTap: () {
+                    Navigator.of(context).pop(_filteredList[index]);
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    child: Text(
+                      _filteredList[index].toString(),
+                      style: widget.itemStyle ??
+                          GoogleFonts.poppins(
+                            textStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                              color: Colors.black87,
+                            ),
+                          ),
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off,
+            size: 48,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No results found',
+            style: GoogleFonts.poppins(
+              textStyle: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
